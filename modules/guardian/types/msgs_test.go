@@ -6,17 +6,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/tendermint/tendermint/crypto"
+	"github.com/cometbft/cometbft/crypto"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/irisnet/irishub/address"
+	"github.com/irisnet/irishub/v2/address"
 )
 
 // nolint: deadcode unused
 var (
-	sender, _   = sdk.AccAddressFromHex(crypto.AddressHash([]byte("sender")).String())
-	testAddr, _ = sdk.AccAddressFromHex(crypto.AddressHash([]byte("test")).String())
+	sender, _   = sdk.AccAddressFromHexUnsafe(crypto.AddressHash([]byte("sender")).String())
+	testAddr, _ = sdk.AccAddressFromHexUnsafe(crypto.AddressHash([]byte("test")).String())
 
 	nilAddr        = sdk.AccAddress{}
 	description    = "description"

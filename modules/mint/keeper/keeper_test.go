@@ -7,12 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/irisnet/irishub/modules/mint/types"
-	"github.com/irisnet/irishub/simapp"
+
+	"github.com/irisnet/irishub/v2/modules/mint/types"
+	"github.com/irisnet/irishub/v2/simapp"
 )
 
 type KeeperTestSuite struct {
@@ -24,13 +25,14 @@ type KeeperTestSuite struct {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
-	app := simapp.Setup(false)
+	app := simapp.Setup(suite.T(), false)
 
 	suite.cdc = app.LegacyAmino()
 	suite.ctx = app.BaseApp.NewContext(false, tmproto.Header{})
 	suite.app = app
 
-	app.MintKeeper.SetParamSet(suite.ctx, types.DefaultParams())
+	err := app.MintKeeper.SetParams(suite.ctx, types.DefaultParams())
+	require.NoError(suite.T(), err)
 	app.MintKeeper.SetMinter(suite.ctx, types.DefaultMinter())
 }
 
@@ -47,9 +49,10 @@ func (suite *KeeperTestSuite) TestSetGetMinter() {
 }
 
 func (suite *KeeperTestSuite) TestSetGetParamSet() {
-	suite.app.MintKeeper.SetParamSet(suite.ctx, types.DefaultParams())
-	expParamSet := suite.app.MintKeeper.GetParamSet(suite.ctx)
+	err := suite.app.MintKeeper.SetParams(suite.ctx, types.DefaultParams())
+	require.NoError(suite.T(), err)
 
+	expParamSet := suite.app.MintKeeper.GetParams(suite.ctx)
 	require.Equal(suite.T(), types.DefaultParams(), expParamSet)
 }
 
@@ -65,8 +68,10 @@ func (suite *KeeperTestSuite) TestMintCoins() {
 }
 
 func (suite *KeeperTestSuite) TestAddCollectedFees() {
-
 	mintCoins := sdk.NewCoins(sdk.NewCoin("iris", sdk.NewInt(1000)))
+
+	feeCollector := suite.app.AccountKeeper.GetModuleAccount(suite.ctx, "fee_collector")
+	feeCollectorBalance := suite.app.BankKeeper.GetAllBalances(suite.ctx, feeCollector.GetAddress())
 
 	err := suite.app.MintKeeper.MintCoins(suite.ctx, mintCoins)
 	require.NoError(suite.T(), err)
@@ -82,8 +87,11 @@ func (suite *KeeperTestSuite) TestAddCollectedFees() {
 	coins = suite.app.BankKeeper.GetAllBalances(suite.ctx, acc.GetAddress())
 	require.True(suite.T(), coins.Empty())
 
-	acc1 := suite.app.AccountKeeper.GetModuleAccount(suite.ctx, "fee_collector")
-	coins1 := suite.app.BankKeeper.GetAllBalances(suite.ctx, acc1.GetAddress())
-	require.Equal(suite.T(), coins1, mintCoins)
+	feeCollectorTotalBalance := suite.app.BankKeeper.GetAllBalances(
+		suite.ctx,
+		feeCollector.GetAddress(),
+	)
+	expectedCollectedFees := feeCollectorTotalBalance.Sub(feeCollectorBalance...)
+	require.Equal(suite.T(), expectedCollectedFees, mintCoins)
 
 }

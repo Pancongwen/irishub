@@ -1,7 +1,9 @@
 #
-# Build image: docker build -t irisnet/irishub .
+# Build image: docker build -t irisnet/irishub:v2.1.0 --build-arg EVM_CHAIN_ID=6688 .
 #
-FROM golang:1.16.9-alpine3.14 as builder
+FROM golang:1.19.13-alpine3.18 as builder
+
+ARG EVM_CHAIN_ID
 
 # Set up dependencies
 ENV PACKAGES make gcc git libc-dev bash linux-headers eudev-dev
@@ -14,11 +16,11 @@ COPY . .
 # Install minimum necessary dependencies
 RUN apk add --no-cache $PACKAGES
 
-RUN make build
+RUN EVM_CHAIN_ID=$EVM_CHAIN_ID make build
 
 # ----------------------------
 
-FROM alpine:3.12
+FROM alpine:3.18
 
 # p2p port
 EXPOSE 26656

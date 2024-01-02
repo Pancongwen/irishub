@@ -1,6 +1,124 @@
 # Changelog
 
-## Unreleased
+## 2.1.0
+
+### API Breaking
+
+* (NFT) [irismod \#378](https://github.com/irisnet/irismod/pull/378) Support x/nft API query.
+* (NFT) [irismod \#378](https://github.com/irisnet/irismod/pull/378) Support irismod/nft API query on IBC denom.
+
+### State Machine Breaking
+
+* (IRISHub) [\#2884](https://github.com/irisnet/irishub/pull/2884) Add nft-transfer module with version v1.1.3-ibc-v7.3.0
+* (IRISHub) [\#2884](https://github.com/irisnet/irishub/pull/2884) Bump up tibc-go version to v0.5.0
+* (IRISHub) [\#2884](https://github.com/irisnet/irishub/pull/2884) Bump up irismod version to v1.8.0
+* (IRISHub) [\#2863](https://github.com/irisnet/irishub/pull/2863) Add consensus module.
+* (IRISHub) [\#2863](https://github.com/irisnet/irishub/pull/2863) Bump up ethermint version to v0.22.0
+* (IRISHub) [\#2863](https://github.com/irisnet/irishub/pull/2863) Bump up ibc-go version to v7.3.0
+* (IRISHub) [\#2863](https://github.com/irisnet/irishub/pull/2863) Bump up cosmos-sdk to v0.47.4
+* (IRISHub) [\#2863](https://github.com/irisnet/irishub/pull/2863) Bump up cometbft to v0.37.2
+
+### Features
+
+* (NFT-Transfer) [\#2863](https://github.com/irisnet/irishub/pull/2863) IRISHub now integrates the functionality of interchain nft-transfer, allowing you to transfer NFTs to other chains.
+
+### Improvements
+
+* (IRISHub) [\#2858](https://github.com/irisnet/irishub/pull/2858) Migrate mint params.
+* (IRISHub) [irismod \#381](https://github.com/irisnet/irismod/pull/381) Forbidden to mint nft under ibc class.
+* (IRISMod) [irismod \#364](https://github.com/irisnet/irismod/pull/364) Migrate token params.
+* (IRISMod) [irismod \#363](https://github.com/irisnet/irismod/pull/363) Migrate service params.
+* (IRISMod) [irismod \#362](https://github.com/irisnet/irismod/pull/362) Migrate htlc params.
+* (IRISMod) [irismod \#361](https://github.com/irisnet/irismod/pull/361) Migrate farm params.
+* (IRISMod) [irismod \#360](https://github.com/irisnet/irismod/pull/360) Migrate coinswap params.
+
+### Bug Fixes
+
+* (IRISHub) [\#2863](https://github.com/irisnet/irishub/pull/2863) Fix collect-gentxs command.
+* (IRISHub) [\#2852](https://github.com/irisnet/irishub/pull/2852) Fix eip712 signature and inject ParseChainID method
+* (IRISMod) [irismod \#380](https://github.com/irisnet/irismod/pull/380) Fix farm genesis validation.
+* (IRISMod) [irismod \#367](https://github.com/irisnet/irismod/pull/367) Fix mt module rest url conflict.
+* (IRISMod) [irismod \#356](https://github.com/irisnet/irismod/pull/356) Replace base64.StdEncoding with base64.RawStdEncoding.
+* (IRISMod) [irismod \#351](https://github.com/irisnet/irismod/pull/351) Fix wrong addr length of the service module.
+
+### Security
+
+* (IRISHub) [\#2865](https://github.com/irisnet/irishub/pull/2865) Disable the vesting account creation to prevent contract address front-running.
+
+## 2.0.0
+
+### State Machine Breaking
+
+* (IRISHub) [\#2831](https://github.com/irisnet/irishub/pull/2831) Bump up tibc-go version to v0.4.3
+* (IRISHub) [\#2831](https://github.com/irisnet/irishub/pull/2831) Bump up irismod version to v1.7.3
+* (IRISHub) [\#2766](https://github.com/irisnet/irishub/pull/2766) Bump up cosmos sdk to v0.46.9
+* (IRISHub) [\#2822]( https://github.com/irisnet/irishub/pull/2822) Remove ICA module
+
+### Features
+
+* (IRISHub) [\#2776](https://github.com/irisnet/irishub/pull/2776) Feat: support evm
+
+### Improvements
+
+* (IRISHub) [\#2824](https://github.com/irisnet/irishub/pull/2824) Feat: update swagger docs & evm configuration
+* (IRISMod) [irismod \#340](https://github.com/irisnet/irismod/pull/340) The token module supports the exchange of two tokens.
+* (IRISMod) [irismod \#342](https://github.com/irisnet/irismod/pull/342) Refactor token module.
+* (IRISMod) [irismod \#348](https://github.com/irisnet/irismod/pull/348) Adjust the length limit of classID and nftID in nft.
+
+### Bug Fixes
+
+* (IRISHub) [\#2828](https://github.com/irisnet/irishub/pull/2828) Fix solve proposal handler route conflict
+* (IRISHub) [\#2827](https://github.com/irisnet/irishub/pull/2827) Fix add ibc client proposal for command
+* (IRISHub) [\#2794](https://github.com/irisnet/irishub/pull/2794) Fix auth bech32 account prefix
+* (IRISMod) [irismod \#336](https://github.com/irisnet/irismod/pull/336) Fix farm genesis validate failed.
+* (IRISMod) [irismod \#327](https://github.com/irisnet/irismod/pull/327) Only export htlc with state=open.
+* (IRISMod) [irismod \#347](https://github.com/irisnet/irismod/pull/347) Fix service refund address parse error.
+* (IRISMod) [irismod \#350](https://github.com/irisnet/irismod/pull/350) Fix address parse errors caused by service rest api conflicts.
+
+## 1.4.1
+
+*November 28, 2022*
+
+### Application
+
+* [\#2780](https://github.com/irisnet/irishub/pull/2780) Bump tibc-go version to v0.4.2
+* [\#2779](https://github.com/irisnet/irishub/pull/2779) Bump up irismod version to v1.7.2
+* [\#2777](https://github.com/irisnet/irishub/pull/2777) Add SetIAVLCacheSize and SetIAVLDisableFastNode
+* [\#2775](https://github.com/irisnet/irishub/pull/2775) Remove group module
+
+## 1.4.0
+
+*November 15, 2022*
+### Application
+
+* [\#2759](https://github.com/irisnet/irishub/pull/2759) Fix export error when with flag `--for-zero-height`
+* [\#2766](https://github.com/irisnet/irishub/pull/2766) Bump up cosmos sdk to v0.46.4
+* [\#2768](https://github.com/irisnet/irishub/pull/2768) Bump up ibc-go to v5.0.1
+* [\#2770](https://github.com/irisnet/irishub/pull/2770) Bump up irismod to v1.7.0 & Bump up tibc-go to v0.4.0
+* [irismod \#309](https://github.com/irisnet/irismod/pull/309) Refactor nft with cosmos-sdk nft module.
+* [irismod \#308](https://github.com/irisnet/irismod/pull/308) Coinswap module adds unilateral injection liquidity function.
+
+### API Breaking Changes
+
+* [irismod \#309](https://github.com/irisnet/irismod/pull/309) GRPC method `Owner` rename to `NFTsOfOwner`, Remove deprecated `Queries` api
+### Bug Fixes
+
+* [irismod \#304](https://github.com/irisnet/irismod/pull/304) Fix nft module import error.
+* [irismod \#314](https://github.com/irisnet/irismod/pull/314) Fix `addLiquidity` panic error.
+
+## 1.3.0
+
+*March 19, 2022*
+
+### Application
+
+* [\#2735](https://github.com/irisnet/irishub/pull/2735) Bump up irismod
+* [\#2734](https://github.com/irisnet/irishub/pull/2734) Bump up TIBC-Go
+* [TIBC-Go \#247](https://github.com/bianjieai/tibc-go/pull/103) Support cross chain MT transfer via TIBC
+* [irismod \#247](https://github.com/irisnet/irismod/pull/247) Added the Farm Proposal function, allowing users to submit on-chain proposals to apply for a specified amount of IRIS in IRISnet’s community pool as farming rewards.
+* [irismod \#249](https://github.com/irisnet/irismod/pull/249) An added gas fee of 5,000 IRIS, with a tax rate of 40%, for the creation of new liquidity pools.
+* [irismod \#245](https://github.com/irisnet/irismod/pull/245) Compatibilized & expanded the functions of the NFT module to match ERC-721 spec, and to support application requirements in a more flexible manner.
+* [irismod \#269](https://github.com/irisnet/irismod/pull/269) Introduced ERC-1155 compatible MT (Multi Token) module
 
 ## 1.2.0
 

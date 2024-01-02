@@ -7,9 +7,9 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
-	minttestutil "github.com/irisnet/irishub/modules/mint/client/testutil"
-	minttypes "github.com/irisnet/irishub/modules/mint/types"
-	"github.com/irisnet/irishub/simapp"
+	minttestutil "github.com/irisnet/irishub/v2/modules/mint/client/testutil"
+	minttypes "github.com/irisnet/irishub/v2/modules/mint/types"
+	"github.com/irisnet/irishub/v2/simapp"
 )
 
 type IntegrationTestSuite struct {
@@ -25,10 +25,12 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	cfg := simapp.NewConfig()
 	cfg.NumValidators = 1
 
+	var err error
 	s.cfg = cfg
-	s.network = network.New(s.T(), cfg)
+	s.network, err = network.New(s.T(), s.T().TempDir(), cfg)
+	s.Require().NoError(err)
 
-	_, err := s.network.WaitForHeight(1)
+	_, err = s.network.WaitForHeight(1)
 	s.Require().NoError(err)
 }
 

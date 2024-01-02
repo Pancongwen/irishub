@@ -6,17 +6,21 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
 
+	evmtypes "github.com/evmos/ethermint/x/evm/types"
+	tokentypes "github.com/irisnet/irismod/modules/token/types"
+
 	"github.com/spf13/cobra"
 
-	tmconfig "github.com/tendermint/tendermint/config"
-	tmos "github.com/tendermint/tendermint/libs/os"
-	tmrand "github.com/tendermint/tendermint/libs/rand"
-	"github.com/tendermint/tendermint/types"
-	tmtime "github.com/tendermint/tendermint/types/time"
+	tmconfig "github.com/cometbft/cometbft/config"
+	tmos "github.com/cometbft/cometbft/libs/os"
+	tmrand "github.com/cometbft/cometbft/libs/rand"
+	"github.com/cometbft/cometbft/types"
+	tmtime "github.com/cometbft/cometbft/types/time"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -26,6 +30,7 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/server"
 	srvconfig "github.com/cosmos/cosmos-sdk/server/config"
+	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -34,7 +39,13 @@ import (
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	guardiantypes "github.com/irisnet/irishub/modules/guardian/types"
+	servercfg "github.com/evmos/ethermint/server/config"
+
+	guardiantypes "github.com/irisnet/irishub/v2/modules/guardian/types"
+	iristypes "github.com/irisnet/irishub/v2/types"
+	randomtypes "github.com/irisnet/irismod/modules/random/types"
+	servicetypes "github.com/irisnet/irismod/modules/service/types"
+	tokentypesv1 "github.com/irisnet/irismod/modules/token/types/v1"
 )
 
 var (
@@ -46,8 +57,15 @@ var (
 	flagStartingIPAddress = "starting-ip-address"
 )
 
+const nativeIrisMinUnit = "uiris"
+
+var PowerReduction = sdk.NewIntFromUint64(1000000000000000000)
+
 // get cmd to initialize all files for tendermint testnet and application
-func testnetCmd(mbm module.BasicManager, genBalIterator banktypes.GenesisBalancesIterator) *cobra.Command {
+func testnetCmd(
+	mbm module.BasicManager,
+	genBalIterator banktypes.GenesisBalancesIterator,
+) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "testnet",
 		Short: "Initialize files for a simapp testnet",
@@ -72,32 +90,53 @@ Example:
 			nodeCLIHome, _ := cmd.Flags().GetString(flagNodeCLIHome)
 			startingIPAddress, _ := cmd.Flags().GetString(flagStartingIPAddress)
 			numValidators, _ := cmd.Flags().GetInt(flagNumValidators)
-			algo, _ := cmd.Flags().GetString(flags.FlagKeyAlgorithm)
+			algo, _ := cmd.Flags().GetString(flags.FlagKeyType)
 
 			return InitTestnet(
-				clientCtx, cmd, config, mbm, genBalIterator, outputDir, chainID, minGasPrices,
-				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, keyringBackend, algo, numValidators,
+				clientCtx,
+				cmd,
+				config,
+				mbm,
+				genBalIterator,
+				outputDir,
+				chainID,
+				minGasPrices,
+				nodeDirPrefix,
+				nodeDaemonHome,
+				nodeCLIHome,
+				startingIPAddress,
+				keyringBackend,
+				algo,
+				numValidators,
 			)
 		},
 	}
 
 	cmd.Flags().Int(flagNumValidators, 4, "Number of validators to initialize the testnet with")
-	cmd.Flags().StringP(flagOutputDir, "o", "./mytestnet", "Directory to store initialization data for the testnet")
-	cmd.Flags().String(flagNodeDirPrefix, "node", "Prefix the directory name for each node with (node results in node0, node1, ...)")
-	cmd.Flags().String(flagNodeDaemonHome, "iris", "Home directory of the node's daemon configuration")
+	cmd.Flags().
+		StringP(flagOutputDir, "o", "./mytestnet", "Directory to store initialization data for the testnet")
+	cmd.Flags().
+		String(flagNodeDirPrefix, "node", "Prefix the directory name for each node with (node results in node0, node1, ...)")
+	cmd.Flags().
+		String(flagNodeDaemonHome, "iris", "Home directory of the node's daemon configuration")
 	cmd.Flags().String(flagNodeCLIHome, "iriscli", "Home directory of the node's cli configuration")
-	cmd.Flags().String(flagStartingIPAddress, "192.168.0.1", "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:46656, ID1@192.168.0.2:46656, ...)")
-	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
-	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", sdk.DefaultBondDenom), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01photino,0.001stake)")
-	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-	cmd.Flags().String(flags.FlagKeyAlgorithm, string(hd.Secp256k1Type), "Key signing algorithm to generate keys for")
+	cmd.Flags().
+		String(flagStartingIPAddress, "192.168.0.1", "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:46656, ID1@192.168.0.2:46656, ...)")
+	cmd.Flags().
+		String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
+	cmd.Flags().
+		String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", sdk.DefaultBondDenom), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01photino,0.001stake)")
+	cmd.Flags().
+		String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
+	cmd.Flags().
+		String(flags.FlagKeyType, string(hd.Secp256k1Type), "Key signing algorithm to generate keys for")
 
 	return cmd
 }
 
 const nodeDirPerm = 0755
 
-// Initialize the testnet
+// InitTestnet the testnet
 func InitTestnet(
 	clientCtx client.Context,
 	cmd *cobra.Command,
@@ -116,13 +155,13 @@ func InitTestnet(
 	numValidators int,
 ) error {
 	if chainID == "" {
-		chainID = "chain-" + tmrand.NewRand().Str(6)
+		chainID = "chain-" + tmrand.Str(6)
 	}
 
 	nodeIDs := make([]string, numValidators)
 	valPubKeys := make([]cryptotypes.PubKey, numValidators)
 
-	simappConfig := srvconfig.DefaultConfig()
+	simappConfig := servercfg.DefaultConfig()
 	simappConfig.MinGasPrices = minGasPrices
 	simappConfig.API.Enable = true
 	simappConfig.Telemetry.Enabled = true
@@ -174,7 +213,13 @@ func InitTestnet(
 		memo := fmt.Sprintf("%s@%s:26656", nodeIDs[i], ip)
 		genFiles = append(genFiles, nodeConfig.GenesisFile())
 
-		kb, err := keyring.New(sdk.KeyringServiceName(), keyringBackend, clientDir, inBuf)
+		kb, err := keyring.New(
+			sdk.KeyringServiceName(),
+			keyringBackend,
+			nodeDir,
+			inBuf,
+			clientCtx.Codec,
+		)
 		if err != nil {
 			return err
 		}
@@ -185,7 +230,7 @@ func InitTestnet(
 			return err
 		}
 
-		addr, secret, err := server.GenerateSaveCoinKey(kb, nodeDirName, true, algo)
+		addr, secret, err := testutil.GenerateSaveCoinKey(kb, nodeDirName, "", true, algo)
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
@@ -205,12 +250,20 @@ func InitTestnet(
 
 		accTokens := sdk.TokensFromConsensusPower(1000, sdk.DefaultPowerReduction)
 		accStakingTokens := sdk.TokensFromConsensusPower(500, sdk.DefaultPowerReduction)
+		accEvmTokens := sdk.TokensFromConsensusPower(5000, PowerReduction)
+		accIrisTokens := sdk.TokensFromConsensusPower(5000, sdk.DefaultPowerReduction)
+
 		coins := sdk.Coins{
 			sdk.NewCoin(fmt.Sprintf("%stoken", nodeDirName), accTokens),
 			sdk.NewCoin(sdk.DefaultBondDenom, accStakingTokens),
+			sdk.NewCoin(iristypes.EvmToken.MinUnit, accEvmTokens),
+			sdk.NewCoin(nativeIrisMinUnit, accIrisTokens),
 		}
 
-		genBalances = append(genBalances, banktypes.Balance{Address: addr.String(), Coins: coins.Sort()})
+		genBalances = append(
+			genBalances,
+			banktypes.Balance{Address: addr.String(), Coins: coins.Sort()},
+		)
 		genAccounts = append(genAccounts, authtypes.NewBaseAccount(addr, nil, 0, 0))
 
 		valTokens := sdk.TokensFromConsensusPower(100, sdk.DefaultPowerReduction)
@@ -252,6 +305,9 @@ func InitTestnet(
 		if err := writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBz); err != nil {
 			return err
 		}
+
+		customAppTemplate, _ := servercfg.AppConfig(iristypes.NativeToken.MinUnit)
+		srvconfig.SetConfigTemplate(customAppTemplate)
 
 		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
 	}
@@ -307,9 +363,37 @@ func initGenFiles(
 	// set the balances in the genesis state
 	var bankGenState banktypes.GenesisState
 	clientCtx.Codec.MustUnmarshalJSON(appGenState[banktypes.ModuleName], &bankGenState)
-
 	bankGenState.Balances = genBalances
 	appGenState[banktypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(&bankGenState)
+
+	// set the point token in the genesis state
+	var tokenGenState tokentypesv1.GenesisState
+	clientCtx.Codec.MustUnmarshalJSON(appGenState[tokentypes.ModuleName], &tokenGenState)
+	tokenGenState.Tokens = append(tokenGenState.Tokens, iristypes.EvmToken)
+	appGenState[tokentypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(&tokenGenState)
+
+	//set system service in the genesis state
+	var serviceGenState servicetypes.GenesisState
+	clientCtx.Codec.MustUnmarshalJSON(appGenState[servicetypes.ModuleName], &serviceGenState)
+	serviceGenState.Definitions = append(
+		serviceGenState.Definitions,
+		servicetypes.GenOraclePriceSvcDefinition(),
+	)
+	serviceGenState.Bindings = append(
+		serviceGenState.Bindings,
+		servicetypes.GenOraclePriceSvcBinding(iristypes.NativeToken.MinUnit),
+	)
+	serviceGenState.Definitions = append(
+		serviceGenState.Definitions,
+		randomtypes.GetSvcDefinition(),
+	)
+	appGenState[servicetypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(&serviceGenState)
+
+	// set the evm fee token denom in the genesis state
+	var evmGenState evmtypes.GenesisState
+	clientCtx.Codec.MustUnmarshalJSON(appGenState[evmtypes.ModuleName], &evmGenState)
+	evmGenState.Params.EvmDenom = iristypes.EvmToken.MinUnit
+	appGenState[evmtypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(&evmGenState)
 
 	appGenStateJSON, err := json.MarshalIndent(appGenState, "", "  ")
 	if err != nil {
@@ -332,9 +416,14 @@ func initGenFiles(
 }
 
 func collectGenFiles(
-	clientCtx client.Context, nodeConfig *tmconfig.Config, chainID string,
-	nodeIDs []string, valPubKeys []cryptotypes.PubKey, numValidators int,
-	outputDir, nodeDirPrefix, nodeDaemonHome string, genBalIterator banktypes.GenesisBalancesIterator,
+	clientCtx client.Context,
+	nodeConfig *tmconfig.Config,
+	chainID string,
+	nodeIDs []string,
+	valPubKeys []cryptotypes.PubKey,
+	numValidators int,
+	outputDir, nodeDirPrefix, nodeDaemonHome string,
+	genBalIterator banktypes.GenesisBalancesIterator,
 ) error {
 
 	var appState json.RawMessage
@@ -356,7 +445,15 @@ func collectGenFiles(
 			return err
 		}
 
-		nodeAppState, err := genutil.GenAppStateFromConfig(clientCtx.Codec, clientCtx.TxConfig, nodeConfig, initCfg, *genDoc, genBalIterator)
+		nodeAppState, err := genutil.GenAppStateFromConfig(
+			clientCtx.Codec,
+			clientCtx.TxConfig,
+			nodeConfig,
+			initCfg,
+			*genDoc,
+			genBalIterator,
+			genutiltypes.DefaultMessageValidator,
+		)
 		if err != nil {
 			return err
 		}
@@ -365,11 +462,14 @@ func collectGenFiles(
 			// set the canonical application state (they should not differ)
 			appState = nodeAppState
 		}
+		genDoc.ConsensusParams.Block.MaxGas = 20000000
+		genDoc.ChainID = chainID
+		genDoc.GenesisTime = genTime
+		genDoc.AppState = appState
 
 		genFile := nodeConfig.GenesisFile()
-
 		// overwrite each validator's genesis file to have a canonical genesis time
-		if err := genutil.ExportGenesisFileWithTime(genFile, chainID, nil, appState, genTime); err != nil {
+		if err := genutil.ExportGenesisFile(genDoc, genFile); err != nil {
 			return err
 		}
 	}
@@ -409,7 +509,7 @@ func writeFile(name string, dir string, contents []byte) error {
 		return err
 	}
 
-	if err := tmos.WriteFile(file, contents, 0644); err != nil {
+	if err := ioutil.WriteFile(file, contents, 0644); err != nil {
 		return err
 	}
 

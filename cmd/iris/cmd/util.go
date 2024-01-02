@@ -13,13 +13,14 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/tendermint/tendermint/libs/cli"
+	"github.com/cometbft/cometbft/libs/cli"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	tokentypes "github.com/irisnet/irismod/modules/token/types"
+	tokenv1 "github.com/irisnet/irismod/modules/token/types/v1"
 )
 
 const (
@@ -79,7 +80,7 @@ func (c command) append(name, typ string, index int) command {
 
 type coinConverter struct {
 	cmds   map[string]command
-	tokens map[string]tokentypes.TokenI
+	tokens map[string]tokenv1.TokenI
 	r, w   *os.File
 }
 
@@ -87,7 +88,7 @@ type coinConverter struct {
 func NewConverter() *coinConverter {
 	return &coinConverter{
 		cmds:   make(map[string]command),
-		tokens: make(map[string]tokentypes.TokenI),
+		tokens: make(map[string]tokenv1.TokenI),
 	}
 }
 
@@ -134,7 +135,9 @@ func (it *coinConverter) registerCmdWithFlag(parentCmd, cmd, flagNm string) *coi
 	return it
 }
 
-func (it *coinConverter) registerCmdForResponse(parentCmd, cmd, jsonPath, typ string) *coinConverter {
+func (it *coinConverter) registerCmdForResponse(
+	parentCmd, cmd, jsonPath, typ string,
+) *coinConverter {
 	commands, ok := it.cmds[cmd]
 	if !ok {
 		commands = command{
@@ -149,7 +152,10 @@ func (it *coinConverter) registerCmdForResponse(parentCmd, cmd, jsonPath, typ st
 	return it
 }
 
-func (it *coinConverter) registerCmdForResponses(parentCmd, cmd string, fields ...field) *coinConverter {
+func (it *coinConverter) registerCmdForResponses(
+	parentCmd, cmd string,
+	fields ...field,
+) *coinConverter {
 	commands, ok := it.cmds[cmd]
 	if !ok {
 		commands = command{
@@ -306,7 +312,10 @@ func (it coinConverter) resolvePath(cfg *config.Config, path string) (paths []st
 	return paths
 }
 
-func (it *coinConverter) queryToken(cmd *cobra.Command, denom string) (ft tokentypes.TokenI, err error) {
+func (it *coinConverter) queryToken(
+	cmd *cobra.Command,
+	denom string,
+) (ft tokenv1.TokenI, err error) {
 	if ft, ok := it.tokens[denom]; ok {
 		return ft, nil
 	}
@@ -320,16 +329,16 @@ func (it *coinConverter) queryToken(cmd *cobra.Command, denom string) (ft tokent
 		return nil, err
 	}
 
-	queryClient := tokentypes.NewQueryClient(clientCtx)
+	queryClient := tokenv1.NewQueryClient(clientCtx)
 
-	res, err := queryClient.Token(context.Background(), &tokentypes.QueryTokenRequest{
+	res, err := queryClient.Token(context.Background(), &tokenv1.QueryTokenRequest{
 		Denom: denom,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	var evi tokentypes.TokenI
+	var evi tokenv1.TokenI
 	err = clientCtx.InterfaceRegistry.UnpackAny(res.Token, &evi)
 	if err != nil {
 		return nil, err
@@ -386,7 +395,10 @@ func (it *coinConverter) handleMap(cmd *cobra.Command, cfg *config.Config, path 
 	_ = cfg.Set(path, dstCoin)
 }
 
-func (it *coinConverter) convertCoins(cmd *cobra.Command, coinsStr string) (dstCoinsStr string, err error) {
+func (it *coinConverter) convertCoins(
+	cmd *cobra.Command,
+	coinsStr string,
+) (dstCoinsStr string, err error) {
 	cs, err := it.parseCoins(coinsStr)
 	if err != nil {
 		return coinsStr, err
@@ -403,7 +415,10 @@ func (it *coinConverter) convertCoins(cmd *cobra.Command, coinsStr string) (dstC
 	return dstCoins.String(), nil
 }
 
-func (it *coinConverter) convertToMinCoin(cmd *cobra.Command, srcCoin sdk.DecCoin) (coin sdk.Coin, err error) {
+func (it *coinConverter) convertToMinCoin(
+	cmd *cobra.Command,
+	srcCoin sdk.DecCoin,
+) (coin sdk.Coin, err error) {
 	ft, err := it.queryToken(cmd, srcCoin.Denom)
 	if err != nil {
 		return coin, err
@@ -411,7 +426,10 @@ func (it *coinConverter) convertToMinCoin(cmd *cobra.Command, srcCoin sdk.DecCoi
 	return ft.ToMinCoin(srcCoin)
 }
 
-func (it *coinConverter) convertToMainCoin(cmd *cobra.Command, srcCoin sdk.Coin) (coin sdk.DecCoin, err error) {
+func (it *coinConverter) convertToMainCoin(
+	cmd *cobra.Command,
+	srcCoin sdk.Coin,
+) (coin sdk.DecCoin, err error) {
 	ft, err := it.queryToken(cmd, srcCoin.Denom)
 	if err != nil {
 		return coin, err

@@ -5,15 +5,15 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/irisnet/irishub/modules/guardian"
-	"github.com/irisnet/irishub/modules/guardian/keeper"
-	"github.com/irisnet/irishub/modules/guardian/types"
-	"github.com/irisnet/irishub/simapp"
+	"github.com/irisnet/irishub/v2/modules/guardian"
+	"github.com/irisnet/irishub/v2/modules/guardian/keeper"
+	"github.com/irisnet/irishub/v2/modules/guardian/types"
+	"github.com/irisnet/irishub/v2/simapp"
 )
 
 type TestSuite struct {
@@ -25,7 +25,7 @@ type TestSuite struct {
 }
 
 func (suite *TestSuite) SetupTest() {
-	app := simapp.Setup(false)
+	app := simapp.Setup(suite.T(), false)
 
 	suite.cdc = codec.NewAminoCodec(app.LegacyAmino())
 	suite.ctx = app.BaseApp.NewContext(false, tmproto.Header{})

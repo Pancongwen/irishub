@@ -7,16 +7,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkmath "cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/types/kv"
 
-	"github.com/irisnet/irishub/modules/mint/simulation"
-	"github.com/irisnet/irishub/modules/mint/types"
-	"github.com/irisnet/irishub/simapp"
+	"github.com/irisnet/irishub/v2/modules/mint/simulation"
+	"github.com/irisnet/irishub/v2/modules/mint/types"
+	"github.com/irisnet/irishub/v2/simapp"
 )
 
 func TestDecodeStore(t *testing.T) {
-	minter := types.NewMinter(time.Now().UTC(), sdk.NewIntWithDecimal(2, 9))
+	minter := types.NewMinter(time.Now().UTC(), sdkmath.NewIntWithDecimal(2, 9))
 	cdc, _ := simapp.MakeCodecs()
 	dec := simulation.NewDecodeStore(cdc)
 
